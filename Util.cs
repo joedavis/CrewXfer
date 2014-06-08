@@ -37,6 +37,16 @@ namespace CrewXfer
             return (List<UIPartActionWindow>) windowField.GetValue(controller);
         }
 
+        public static void UpdateActionWindow(Part part)
+        {
+            var partWindow = Util.GetActionWindows().First((p) => p.part == part);
+
+            if (partWindow)
+            {
+                partWindow.displayDirty = true;
+            }
+        }
+
         public static void UpdateActionWindows()
         {
             foreach (var window in GetActionWindows())

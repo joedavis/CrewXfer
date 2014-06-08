@@ -22,14 +22,34 @@ namespace CrewXfer
 {
     public class CrewXferModule : PartModule
     {
-        double updateStartTime = 0;
+        private double updateStartTime = 0;
 
         public override void OnUpdate()
         {
             base.OnUpdate();
 
-            Events.Clear();
+            UpdateEvents();
 
+            // According to Crew Manifest, we need to delay for a little bit before respawning the
+            // crew.
+            if (updateStartTime != 0 && Planetarium.GetUniversalTime() > (0.25 + updateStartTime))
+            {
+                vessel.SpawnCrew();
+                GameEvents.onVesselChange.Fire(FlightGlobals.ActiveVessel);
+
+                // Tell the game to redraw the right click menus
+                Util.UpdateActionWindows();
+                updateStartTime = 0;
+            }
+
+        }
+
+        private void UpdateEvents()
+        {
+            if (Events.Count == part.protoModuleCrew.Count)
+                return;
+
+            Events.Clear();
             foreach (var crew in part.protoModuleCrew)
             {
                 Events.Add(new BaseEvent(Events, "transfer" + crew.name, () =>
@@ -58,18 +78,6 @@ namespace CrewXfer
                     // Delay before spawning the crew again
                     updateStartTime = Planetarium.GetUniversalTime();
                 }, new KSPEvent { guiName = "Transfer " + crew.name, guiActive = true }));
-            }
-
-            // According to Crew Manifest, we need to delay for a little bit before respawning the
-            // crew.
-            if (updateStartTime != 0 && Planetarium.GetUniversalTime() > (0.25 + updateStartTime))
-            {
-                vessel.SpawnCrew();
-                GameEvents.onVesselChange.Fire(FlightGlobals.ActiveVessel);
-
-                // Tell the game to redraw the right click menus
-                Util.UpdateActionWindows();
-                updateStartTime = 0;
             }
         }
 
