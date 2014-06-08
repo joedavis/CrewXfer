@@ -16,8 +16,6 @@
 
 using System;
 using System.Linq;
-using System.Reflection;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace CrewXfer
@@ -39,7 +37,14 @@ namespace CrewXfer
                     Part otherPart = FindSelectedCrewModule();
 
                     if (!otherPart) return;
-                    if (!HasSpace(otherPart))
+
+                    if (CLSClient.CLSInstalled && !Util.PartsAreConnected(part, otherPart))
+                    {
+                        Util.PostPebkac("Part's aren't connected");
+                        return;
+                    }
+
+                    if (!Util.HasSpace(otherPart))
                     {
                         Util.PostPebkac("Not enough space in module");
                         return;
@@ -97,40 +102,6 @@ namespace CrewXfer
             }
 
             return null;
-            }
-
-        private static bool HasSpace(Part p)
-        {
-            return p.protoModuleCrew.Count < p.CrewCapacity;
-        }
-    }
-
-    class Util
-    {
-        public static IEnumerable<Part> FindRightClickedParts()
-        {
-            return GetActionWindows().Select<UIPartActionWindow,Part>(window => window.part);
-        }
-
-        public static List<UIPartActionWindow> GetActionWindows()
-        {
-            var controller = UIPartActionController.Instance;
-            var privateFields = controller.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
-            var windowField = privateFields.First(f => f.FieldType == typeof(List<UIPartActionWindow>));
-            return (List<UIPartActionWindow>) windowField.GetValue(controller);
-        }
-
-        public static void UpdateActionWindows()
-        {
-            foreach (var window in GetActionWindows())
-            {
-                window.displayDirty = true;
-            }
-        }
-
-        public static void PostPebkac(String s)
-        {
-            ScreenMessages.PostScreenMessage(s, 5.0f, ScreenMessageStyle.UPPER_CENTER);
         }
     }
 }

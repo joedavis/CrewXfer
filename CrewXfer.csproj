@@ -45,6 +45,7 @@
     <Compile Include="CrewXfer.cs" />
     <Compile Include="CLSClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Util.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
