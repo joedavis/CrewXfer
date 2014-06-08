@@ -29,11 +29,18 @@ namespace CrewXfer
             return GetActionWindows().Select<UIPartActionWindow,Part>(window => window.part);
         }
 
+        static FieldInfo windowField = null;
+
         public static List<UIPartActionWindow> GetActionWindows()
         {
             var controller = UIPartActionController.Instance;
-            var privateFields = controller.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
-            var windowField = privateFields.First(f => f.FieldType == typeof(List<UIPartActionWindow>));
+
+            if (windowField == null)
+            {
+                var privateFields = controller.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+                windowField = privateFields.First(f => f.FieldType == typeof(List<UIPartActionWindow>));
+            }
+
             return (List<UIPartActionWindow>) windowField.GetValue(controller);
         }
 

@@ -23,10 +23,30 @@ namespace CrewXfer
     public class CrewXferModule : PartModule
     {
         private double updateStartTime = 0;
+        int oldWindowCount = 0;
+        bool dontUpdateKerbals = false;
 
         public override void OnUpdate()
         {
             base.OnUpdate();
+            var windows = Util.GetActionWindows();
+
+            // If another part has been right clicked we need to redraw the action windows. But we
+            // can't do that on the same frame without causing a shitload of issues. So we delay
+            // the update until about 0.25 seconds in the future.
+            //
+            // The only reason we do this at all is so that we can show or hide the "Transfer ___ Kerman"
+            // actions depending on how many parts are selected and whether they are crewable.
+            
+            if (windows.Count != oldWindowCount)
+            {
+                oldWindowCount = windows.Count;
+                if (updateStartTime == 0)
+                {
+                    updateStartTime = Planetarium.GetUniversalTime();
+                    dontUpdateKerbals = true;
+                }
+            }
 
             UpdateEvents();
 
@@ -34,8 +54,13 @@ namespace CrewXfer
             // crew.
             if (updateStartTime != 0 && Planetarium.GetUniversalTime() > (0.25 + updateStartTime))
             {
-                vessel.SpawnCrew();
-                GameEvents.onVesselChange.Fire(FlightGlobals.ActiveVessel);
+                if (!dontUpdateKerbals)
+                {
+                    vessel.SpawnCrew();
+                    GameEvents.onVesselChange.Fire(FlightGlobals.ActiveVessel);
+                }
+
+                dontUpdateKerbals = false;
 
                 // Tell the game to redraw the right click menus
                 Util.UpdateActionWindows();
@@ -46,10 +71,24 @@ namespace CrewXfer
 
         private void UpdateEvents()
         {
+            var windows = Util.GetActionWindows();
+
+            // Clear the event list if more than two parts are selected or not all of the parts 
+            // selected are crewable
+            if (!(windows.Count == 2
+                && Util.FindRightClickedParts().Contains(part)
+                && windows.All((w) => w.part.CrewCapacity > 0)))
+            {
+                Events.Clear();
+                return;
+            }
+
+            // No need to reset and update these every single frame.
             if (Events.Count == part.protoModuleCrew.Count)
                 return;
 
             Events.Clear();
+
             foreach (var crew in part.protoModuleCrew)
             {
                 Events.Add(new BaseEvent(Events, "transfer" + crew.name, () =>
