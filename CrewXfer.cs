@@ -26,6 +26,8 @@ namespace CrewXfer
         int oldWindowCount = 0;
         bool dontUpdateKerbals = false;
 
+        public ProtoCrewMember heldKerbal;
+
         public override void OnUpdate()
         {
             base.OnUpdate();
@@ -73,29 +75,27 @@ namespace CrewXfer
         {
             var windows = Util.GetActionWindows();
 
-            // Clear the event list if more than two parts are selected or not all of the parts 
+            Events.Clear();
+            // Return if more than two parts are selected or not all of the parts 
             // selected are crewable
             if (!(windows.Count == 2
                 && Util.FindRightClickedParts().Contains(part)
                 && windows.All((w) => w.part.CrewCapacity > 0)))
             {
-                Events.Clear();
+                heldKerbal = null;
                 return;
             }
 
-            // No need to reset and update these every single frame.
-            if (Events.Count == part.protoModuleCrew.Count)
-                return;
-
-            Events.Clear();
-
             foreach (var crew in part.protoModuleCrew)
             {
+                var actionType = (heldKerbal == crew) ? "Swapping " : "Transfer ";
+
                 Events.Add(new BaseEvent(Events, "transfer" + crew.name, () =>
                 {
                     Part otherPart = FindSelectedCrewModule();
-
                     if (!otherPart) return;
+
+                    var otherModule = otherPart.Modules.OfType<CrewXferModule>().First();
 
                     if (CLSClient.CLSInstalled && !Util.PartsAreConnected(part, otherPart))
                     {
@@ -105,7 +105,24 @@ namespace CrewXfer
 
                     if (!otherPart.HasSpace())
                     {
-                        Util.PostPebkac("Not enough space in module");
+                        if (otherModule.heldKerbal != null)
+                        {
+                            otherPart.RemoveCrewmember(otherModule.heldKerbal);
+                            part.RemoveCrewmember(crew);
+                            otherPart.AddCrewmember(crew);
+                            part.AddCrewmember(otherModule.heldKerbal);
+                            otherModule.heldKerbal.seat.SpawnCrew();
+                            crew.seat.SpawnCrew();
+
+                            otherModule.heldKerbal = null;
+                        }
+                        else
+                        {
+                            Util.PostPebkac("Swapping " + crew.name);
+                            heldKerbal = crew;
+                        }
+
+                        updateStartTime = Planetarium.GetUniversalTime();
                         return;
                     }
 
@@ -116,7 +133,7 @@ namespace CrewXfer
 
                     // Delay before spawning the crew again
                     updateStartTime = Planetarium.GetUniversalTime();
-                }, new KSPEvent { guiName = "Transfer " + crew.name, guiActive = true }));
+                }, new KSPEvent { guiName = actionType + crew.name, guiActive = true }));
             }
         }
 
