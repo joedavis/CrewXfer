@@ -22,7 +22,7 @@ using UnityEngine;
 
 namespace CrewXfer
 {
-    class Util
+    static class Util
     {
         public static IEnumerable<Part> FindRightClickedParts()
         {
@@ -67,7 +67,7 @@ namespace CrewXfer
             ScreenMessages.PostScreenMessage(s, 5.0f, ScreenMessageStyle.UPPER_CENTER);
         }
 
-        public static bool HasSpace(Part p)
+        public static bool HasSpace(this Part p)
         {
             return p.protoModuleCrew.Count < p.CrewCapacity;
         }

@@ -103,7 +103,7 @@ namespace CrewXfer
                         return;
                     }
 
-                    if (!Util.HasSpace(otherPart))
+                    if (!otherPart.HasSpace())
                     {
                         Util.PostPebkac("Not enough space in module");
                         return;
